@@ -1,6 +1,7 @@
-main_token = ''
+import requests
+
 vk_api = 'https://api.vk.com/method/'
-vk_cfg = '&access_token=' + main_token + '&v=5.64'
+vk_cfg = '&v=5.64' + '&access_token='
 settings_conf = {}
 target_ulist = {}
 
@@ -17,3 +18,13 @@ def get_settings():
     except Exception as excp:
         print(excp)
 get_settings()
+
+
+def verify_bots():
+    for i in range(1, len(settings_conf)):
+        try:
+            r = requests.get(vk_api + 'account.getProfileInfo?' + vk_cfg + settings_conf[i]).json()
+            print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
+        except:
+            print(f"Bot {i}: {r['error']['error_msg']}")
+verify_bots()
