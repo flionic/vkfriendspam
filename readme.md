@@ -18,9 +18,10 @@ https://www.python.org/ftp/python/3.6.1/python-3.6.1.exe
 * Имеется ссылка: https://oauth.vk.com/token?grant_type=password&scope=friends&client_id=2274003&client_secret=hHbZxrka2uZ6jB1inYsH&username=USER&password=PASS
 * Заменить в ссылке USER на телефон/email ВК аккаунта
 * Заменить PASS на пароль ВК аккаунта
-* Получаете ответ, если ваш ответ, схожий на {"access_token":"4795krd78ag1c369db1ea288743a110d8571379405435f0160c26493988c64d88c02fe8c887bcd53a9ac7","expires_in":0,"user_id":374996700}
-* Скопировать набор символов, расположенный в кавычках, после "access_token" не включая сами кавычки
-* Пример:
+* Получаете ответ, если ваш ответ, схожий на
+>{"access_token":"4795krd78ag1c369db1ea288743a110d8571379405435f0160c26493988c64d88c02fe8c887bcd53a9ac7","expires_in":0,"user_id":374996700}
+* Скопировать набор символов, расположенный в кавычках, после "access_token", не включая сами кавычки
+* Пример
 >4795krd78ag1c369db1ea288743a110d8571379405435f0160c26493988c64d88c02fe8c887bcd53a9ac7
 
 Дополнительная информация:
