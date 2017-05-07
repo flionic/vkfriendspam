@@ -1,7 +1,9 @@
 ### Установка: ###
+0. Скачать  и распаковать архив по ссылке:
+https://github.com/Bionic-Leha/vkfriendspam/archive/master.zip
 1. Запустить python-3.6.1.exe
 2. Поставить галочку на Add Python 3.6 to PATH
-3. НажатьInstall Now  
+3. Нажать 'Install Now'
 
 ### Настройки бота (текстовый файл settings.cfg): ###  
 1. Самая первая строка отвечает за текущую "цель" - ссылка на группу или человека
