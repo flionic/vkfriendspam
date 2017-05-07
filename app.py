@@ -9,12 +9,11 @@ target_ulist = {}
 def get_settings():
     global settings_conf
     try:
-        file_cfg = open('settings.cfg', 'r')
+        file_cfg = open('settings.cfg', 'r+')
         settings_conf = [line.strip() for line in file_cfg]
         print(settings_conf)
     except FileNotFoundError:
-        print('File not found, creating it')
-        open('settings.cfg', 'w')
+        print('Settings file not found, please run install')
     except Exception as excp:
         print(excp)
 get_settings()
