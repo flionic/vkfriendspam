@@ -1,7 +1,7 @@
 Установка бота для Windows:
 ---
 * Скачать  и распаковать архив с ботом по ссылке:
-https://github.com/Bionic-Leha/vkfriendspam/archive/master.zip
+https://github.com/Bionic-Leha/vkfriendspam/archive/release.zip
 * Скачать и запустить установочный файл Python:
 https://www.python.org/ftp/python/3.6.1/python-3.6.1.exe
 * Отметить 'Add Python 3.6 to PATH'
