@@ -1,7 +1,7 @@
 Установка Python для Windows:
 ---
 * Скачать  и распаковать архив с ботом по ссылке:
-https://github.com/Bionic-Leha/vkfriendspam/archive/master.zip
+https://github.com/Bionic-Leha/vkfriendspam/archive/release.zip
 * Скачать и запустить установочный файл:
 https://www.python.org/ftp/python/3.6.1/python-3.6.1.exe
 * Отметить 'Add Python 3.6 to PATH'
@@ -31,5 +31,5 @@ https://www.python.org/ftp/python/3.6.1/python-3.6.1.exe
 * Пример файла settings.cfg:
 >https://vk.com/worket
 >4795krd78ag1c369db1ea288743a110d8571379405435f0160c26493988c64d88c02fe8c887bcd53a9ac7
->43a110d8571379405435f0160c4795krd78ag1c369db1ea288726493988c64d88c02fe8c887bcd53a9ac7
+>2kavyscaey46b82njh2th9p5xkru58dthbd5tg3x6vu5rhg2p6jw4vqr668x3bfadk4wqvhhe3cv8gjncs76c
 * Запуск бота - 'run.bat' (windows)
