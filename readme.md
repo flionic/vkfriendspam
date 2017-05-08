@@ -8,6 +8,7 @@ https://www.python.org/ftp/python/3.6.1/python-3.6.1.exe
 * Нажать 'Install Now'
 * Запустить из папки с ботом 'install.bat'
 * Вставить ссылку на группу/человека
+* Указать период неактивности страницы (в днях)
 * Вставить ключ из сервиса https://anti-captcha.com/clients/settings/apisetup
 >Повторный запуск 'install.bat приведет к полному сбросу настроек'
 
