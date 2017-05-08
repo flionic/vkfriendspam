@@ -94,3 +94,12 @@ def get_used_ids(token):
     data.close()
     return used_ids
 
+
+def get_target_ids(token, ids):
+    target_ids = ids
+    for i in ids:
+        for j in get_used_ids(token):
+            if i == j:
+                target_ids.remove(i)
+    return target_ids
+print(get_target_ids('aaa', ['555', '777']))
