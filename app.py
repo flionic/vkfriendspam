@@ -11,7 +11,7 @@ def get_settings():
     try:
         file_cfg = open('settings.cfg', 'r+')
         settings_conf = [line.strip() for line in file_cfg]
-        print(settings_conf)
+        print(f'Target link: {settings_conf[0]}')
     except FileNotFoundError:
         print('Settings file not found, please run install')
     except Exception as excp:
@@ -27,3 +27,16 @@ def verify_bots():
         except:
             print(f"Bot {i}: {r['error']['error_msg']}")
 verify_bots()
+
+
+def get_type(target):
+    # utils.resolveScreenName?params[screen_name]=worket
+    try:
+        target = target[target.find('vk.com/'):].strip('vk.com/')
+        vk_resp = requests.get(vk_api + 'utils.resolveScreenName?screen_name=' + target + vk_cfg + settings_conf[1]).json()
+        print(vk_resp['response']['type'])
+    except IndexError:
+        print('Bots not found')
+    except Exception as excp:
+        print(f'Error while get link type: {excp}')
+get_type('https://vk.com/worket')
