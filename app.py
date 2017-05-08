@@ -7,41 +7,26 @@ from antigate import AntiGate
 vk_api = 'https://api.vk.com/method'
 vk_cfg = '&v=5.64' + '&access_token='
 settings_conf = {}
-tokens_list = []
-names_list = []
 bots_list = []
 
 
 def get_settings():
-    global settings_conf, tokens_list, bots_list
+    global settings_conf, bots_list
     try:
         file_cfg = open('settings.cfg', 'r+')
         settings_conf = [line.strip() for line in file_cfg]
         for i in range(2, len(settings_conf)):
-            tokens_list.append(settings_conf[i])
-            bots_list.append({'token': settings_conf[i]})
+            r = requests.get(f'{vk_api}/account.getProfileInfo?{vk_cfg}{settings_conf[i]}').json()
+            bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}"})
+            print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
         print(f'Target link: {settings_conf[0]}')
     except FileNotFoundError:
         print('Settings file not found, please run install')
     except Exception as excp:
         print(f'Error while get settings: {excp}')
-
+        # print(f"Bot {i}: {r['error']['error_msg']}")
 
 get_settings()
-
-
-def verify_bots():
-    global names_list
-    for i in range(0, len(tokens_list)):
-        try:
-            r = requests.get(f'{vk_api}/account.getProfileInfo?{vk_cfg}{tokens_list[i]}').json()
-            names_list.append({'name': f"{r['response']['first_name']} {r['response']['last_name']}"})
-            print(f"Bot {i}: {names_list[i]['name']}")
-        except:
-            print(f"Bot {i}: {r['error']['error_msg']}")
-
-
-verify_bots()
 
 
 def get_type(target):
@@ -62,7 +47,7 @@ def get_type(target):
 def get_friends(_id):
     try:
         print('Get user friends...')
-        ulist = requests.get(f'{vk_api}/friends.get?order=random&user_id={_id}{vk_cfg}').json()
+        ulist = requests.get(f'{vk_api}/friends.get?order=name&user_id={_id}{vk_cfg}').json()
         return ulist['response']['items']
     except Exception as excp:
         print(f'Error while get friends: {excp}')
@@ -112,11 +97,11 @@ def get_target_ids(token, ids):
     return target_ids
 
 
-def send_request(token, ids, name):
-    for _id in ids:
-        req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{token}'
+def send_request(bot_id, id_list):
+    for _id in id_list:
+        req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot_id]["token"]}'
         vk_req = requests.get(req).json()
-        print(f'{name}: send request to friends for id: {_id}')
+        print(f'{bots_list[bot_id]["name"]}: send request to friends for id{_id}')
         print(f'{vk_req}')
         if 'error' in vk_req:
             if vk_req['error']['error_code'] == 14:
@@ -124,16 +109,25 @@ def send_request(token, ids, name):
                 urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
                 captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
                 vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
-                print(f'After captcha: {vk_req}')
+                print(f'{vk_req}')
+            else:
+                print('Reached limit of requests')
         time.sleep(10)
 
-for i in range(len(tokens_list)):
-    try:
-        type_id = get_type(settings_conf[0])
-        if type_id[0] == 'user':
-            list_ids = get_friends(type_id[1])
-        elif type_id[0] == 'group':
-            list_ids = get_members(type_id[1])
-        send_request(tokens_list[i], get_target_ids(settings_conf[1], list_ids), names_list[i])
-    except TypeError:
-        print('Error while get target link type')
+for i in range(len(bots_list)):
+    # try:
+    #     type_id = get_type(settings_conf[0])
+    #     if type_id[0] == 'user':
+    #         list_ids = get_friends(type_id[1])
+    #     elif type_id[0] == 'group':
+    #         list_ids = get_members(type_id[1])
+    #     send_request(tokens_list[i], get_target_ids(settings_conf[1], list_ids))
+    # except TypeError:
+    #     # print('Error while get target link type')
+    #     print('Error')
+    type_id = get_type(settings_conf[0])
+    if type_id[0] == 'user':
+        list_ids = get_friends(type_id[1])
+    elif type_id[0] == 'group':
+        list_ids = get_members(type_id[1])
+    send_request(i, get_target_ids(bots_list[i]['token'], list_ids))
