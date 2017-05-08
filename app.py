@@ -17,7 +17,7 @@ def get_settings():
         settings_conf = [line.strip() for line in file_cfg]
         for i in range(3, len(settings_conf)):
             r = requests.get(f'{vk_api}/account.getProfileInfo?{vk_cfg}{settings_conf[i]}').json()
-            bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}"})
+            bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}", 'target': settings_conf[0], 'last_id': '0'})
             print(f"Bot {i-2}: {r['response']['first_name']} {r['response']['last_name']}")
         print(f'Target link: {settings_conf[0]}')
     except FileNotFoundError:
@@ -79,9 +79,8 @@ def get_used_ids(token):
     data = sqlite3.connect('data.db')
     c = data.cursor()
     t = (token,)
-    c.execute("select id from requests where token=?", t)
     used_ids = []
-    for row in c.execute("select id from requests where token='aaa'"):
+    for row in c.execute("select last_id from requests where token=?", t):
         used_ids.append(row[0])
     data.commit()
     data.close()
@@ -97,9 +96,9 @@ def get_target_ids(token, ids):
     return target_ids
 
 
-def get_user(id):
+def get_user(_id):
     try:
-        vk_req = requests.get(f'{vk_api}/users.get?user_ids=122734122&fields=last_seen{vk_cfg}').json()
+        vk_req = requests.get(f'{vk_api}/users.get?user_ids={_id}&fields=last_seen{vk_cfg}').json()
         last_seen = int(vk_req['response'][0]['last_seen']['time'])
         if 'deactivated' not in vk_req['response']:
             if int(settings_conf[1]) == 0 or last_seen > time.time() - int(settings_conf[1]) * 86400:
@@ -114,21 +113,40 @@ def get_user(id):
 def send_request(ids_list):
     for _id in ids_list:
         for bot in range(len(bots_list)):
+            data = sqlite3.connect('data.db')
+            cur = data.cursor()
+            cur.execute("select last_id from requests where token=? and destination=?", (bots_list[bot]["token"], settings_conf[0]))
+            last_added_id = cur.fetchone()[0]
+            print(last_added_id)
+            if last_added_id is None:
+                cur.execute("insert into requests (token, destination, last_id) values (?, ?, ?)", (bots_list[bot]["token"], settings_conf[0], 0))
+            data.commit()
+            data.close()
             target_uname = get_user(_id)
-            if target_uname:
+            if target_uname and int(_id) > int(last_added_id):
                 req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot]["token"]}'
                 vk_req = requests.get(req).json()
                 print(f'{bots_list[bot]["name"]}: adding to friends {target_uname}')
-                print(f'{vk_req}')
                 if 'error' in vk_req:
                     if vk_req['error']['error_code'] == 14:
                         print('Captcha needed, request to anti-captcha.com...')
                         urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
                         captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
                         vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
-                        print(f'{vk_req}')
                     else:
                         print('Reached limit of requests')
+                if 'response' in vk_req:
+                    if vk_req['response'] == 1:
+                        bots_list[bot]['last_id'] = _id
+                        data = sqlite3.connect('data.db')
+                        cur = data.cursor()
+                        cur.execute("update requests set last_id=? where token=? and destination=?", (_id, bots_list[bot]["token"], settings_conf[0]))
+                        data.commit()
+                        data.close()
+                        print('OK')
+                    elif vk_req['response'] == 4:
+                        print('Double request')
+                print(f'{vk_req}')
         time.sleep(10)
 
 for i in range(len(bots_list)):
