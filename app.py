@@ -36,8 +36,34 @@ def get_type(target):
         _type = vk_resp['response']['type']
         _id = vk_resp['response']['object_id']
         print(f'Type: {_type}')
+        if _type == 'user':
+            get_friends(_id)
+        elif _type == 'group':
+            get_members(_id)
     except IndexError:
         print('Bots not found')
     except Exception as excp:
         print(f'Error while get link type: {excp}')
+
+
+def get_friends(_id):
+    global target_ulist
+    try:
+        ulist = requests.get(vk_api + 'friends.get?order=random&user_id=' + str(_id)).json()
+        target_ulist = ulist['response']
+        print(f'User friends: {target_ulist}')
+    except Exception as excp:
+        print(f'Error while get friends: {excp}')
+
+
+# Feature
+def get_members(_id):
+    global target_ulist
+    try:
+        ulist = requests.get(vk_api + 'groups.getMembers?sort=time_asc&group_id=' + str(_id)).json()
+        target_ulist = ulist['response']
+        print(f'Members: \n{target_ulist}')
+    except Exception as excp:
+        print(f'Error while get members: {excp}')
+
 get_type('https://vk.com/bionic.leha')
