@@ -1,9 +1,10 @@
+import time
 import requests
 
-vk_api = 'https://api.vk.com/method/'
+vk_api = 'https://api.vk.com/method'
 vk_cfg = '&v=5.64' + '&access_token='
 settings_conf = {}
-target_ulist = {}
+target_ulist = []
 
 
 def get_settings():
@@ -22,7 +23,7 @@ get_settings()
 def verify_bots():
     for i in range(1, len(settings_conf)):
         try:
-            r = requests.get(vk_api + 'account.getProfileInfo?' + vk_cfg + settings_conf[i]).json()
+            r = requests.get(f'{vk_api}/account.getProfileInfo?' + vk_cfg + settings_conf[i]).json()
             print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
         except:
             print(f"Bot {i}: {r['error']['error_msg']}")
@@ -32,10 +33,9 @@ verify_bots()
 def get_type(target):
     try:
         target = target[target.find('vk.com/'):].strip('vk.com/')
-        vk_resp = requests.get(vk_api + 'utils.resolveScreenName?screen_name=' + target + vk_cfg + settings_conf[1]).json()
+        vk_resp = requests.get(f'{vk_api}/utils.resolveScreenName?screen_name=' + target + vk_cfg + settings_conf[1]).json()
         _type = vk_resp['response']['type']
         _id = vk_resp['response']['object_id']
-        print(f'Type: {_type}')
         if _type == 'user':
             get_friends(_id)
         elif _type == 'group':
@@ -49,9 +49,9 @@ def get_type(target):
 def get_friends(_id):
     global target_ulist
     try:
-        ulist = requests.get(vk_api + 'friends.get?order=random&user_id=' + str(_id)).json()
+        print('Get user friends...')
+        ulist = requests.get(f'{vk_api}/friends.get?order=random&user_id={_id}').json()
         target_ulist = ulist['response']
-        print(f'User friends: {target_ulist}')
     except Exception as excp:
         print(f'Error while get friends: {excp}')
 
@@ -60,10 +60,18 @@ def get_friends(_id):
 def get_members(_id):
     global target_ulist
     try:
-        ulist = requests.get(vk_api + 'groups.getMembers?sort=time_asc&group_id=' + str(_id)).json()
-        target_ulist = ulist['response']
-        print(f'Members: \n{target_ulist}')
+        print('Get group members...')
+        ulist = requests.get(f'{vk_api}/groups.getMembers?count=0&group_id={_id}').json()
+        members_count = ulist['response']['count']
+        if (members_count % 1000) > 0:
+            reqs_nums = (members_count / 1000) + 1
+        else:
+            reqs_nums = members_count / 1000
+        for i in range(0, int(reqs_nums)):
+            ulist = requests.get(f'{vk_api}/groups.getMembers?offset={i*1000}&group_id={_id}{vk_cfg}').json()
+            target_ulist += (ulist['response']['items'])
+            time.sleep(0.2)
     except Exception as excp:
         print(f'Error while get members: {excp}')
 
-get_type('https://vk.com/bionic.leha')
+get_type('https://vk.com/worket')
