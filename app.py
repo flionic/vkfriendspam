@@ -1,5 +1,6 @@
 import time
 import requests
+import sqlite3
 
 vk_api = 'https://api.vk.com/method'
 vk_cfg = '&v=5.64' + '&access_token='
@@ -17,6 +18,8 @@ def get_settings():
         print('Settings file not found, please run install')
     except Exception as excp:
         print(f'Error while get settings: {excp}')
+
+
 get_settings()
 
 
@@ -27,6 +30,8 @@ def verify_bots():
             print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
         except:
             print(f"Bot {i}: {r['error']['error_msg']}")
+
+
 verify_bots()
 
 
@@ -56,7 +61,6 @@ def get_friends(_id):
         print(f'Error while get friends: {excp}')
 
 
-# Feature
 def get_members(_id):
     global target_ulist
     try:
@@ -70,8 +74,23 @@ def get_members(_id):
         for i in range(0, int(reqs_nums)):
             ulist = requests.get(f'{vk_api}/groups.getMembers?offset={i*1000}&group_id={_id}{vk_cfg}').json()
             target_ulist += (ulist['response']['items'])
-            time.sleep(0.2)
+            time.sleep(0.1)
     except Exception as excp:
         print(f'Error while get members: {excp}')
 
-get_type('https://vk.com/worket')
+
+# get_type('https://vk.com/worket')
+
+
+def get_used_ids(token):
+    data = sqlite3.connect('data.db')
+    c = data.cursor()
+    t = (token,)
+    c.execute("select id from requests where token=?", t)
+    used_ids = []
+    for row in c.execute("select id from requests where token='aaa'"):
+        used_ids.append(row[0])
+    data.commit()
+    data.close()
+    return used_ids
+
