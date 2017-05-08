@@ -15,10 +15,10 @@ def get_settings():
     try:
         file_cfg = open('settings.cfg', 'r+')
         settings_conf = [line.strip() for line in file_cfg]
-        for i in range(2, len(settings_conf)):
+        for i in range(3, len(settings_conf)):
             r = requests.get(f'{vk_api}/account.getProfileInfo?{vk_cfg}{settings_conf[i]}').json()
             bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}"})
-            print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
+            print(f"Bot {i-2}: {r['response']['first_name']} {r['response']['last_name']}")
         print(f'Target link: {settings_conf[0]}')
     except FileNotFoundError:
         print('Settings file not found, please run install')
@@ -97,21 +97,38 @@ def get_target_ids(token, ids):
     return target_ids
 
 
-def send_request(bot_id, id_list):
-    for _id in id_list:
-        req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot_id]["token"]}'
-        vk_req = requests.get(req).json()
-        print(f'{bots_list[bot_id]["name"]}: send request to friends for id{_id}')
-        print(f'{vk_req}')
-        if 'error' in vk_req:
-            if vk_req['error']['error_code'] == 14:
-                print('Captcha needed, request to anti-captcha.com...')
-                urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
-                captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
-                vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
+def get_user(id):
+    try:
+        vk_req = requests.get(f'{vk_api}/users.get?user_ids=122734122&fields=last_seen{vk_cfg}').json()
+        last_seen = int(vk_req['response'][0]['last_seen']['time'])
+        if 'deactivated' not in vk_req['response']:
+            if int(settings_conf[1]) == 0 or last_seen > time.time() - int(settings_conf[1]) * 86400:
+                return f"{vk_req['response'][0]['first_name']} {vk_req['response'][0]['last_name']}"
+        else:
+            print('User deleted of inactive > of limit')
+            return None
+    except:
+        print('Error while get user')
+
+
+def send_request(ids_list):
+    for _id in ids_list:
+        for bot in range(len(bots_list)):
+            target_uname = get_user(_id)
+            if target_uname:
+                req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot]["token"]}'
+                vk_req = requests.get(req).json()
+                print(f'{bots_list[bot]["name"]}: adding to friends {target_uname}')
                 print(f'{vk_req}')
-            else:
-                print('Reached limit of requests')
+                if 'error' in vk_req:
+                    if vk_req['error']['error_code'] == 14:
+                        print('Captcha needed, request to anti-captcha.com...')
+                        urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
+                        captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
+                        vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
+                        print(f'{vk_req}')
+                    else:
+                        print('Reached limit of requests')
         time.sleep(10)
 
 for i in range(len(bots_list)):
@@ -130,4 +147,4 @@ for i in range(len(bots_list)):
         list_ids = get_friends(type_id[1])
     elif type_id[0] == 'group':
         list_ids = get_members(type_id[1])
-    send_request(i, get_target_ids(bots_list[i]['token'], list_ids))
+    send_request(get_target_ids(bots_list[i]['token'], list_ids))
