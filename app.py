@@ -117,24 +117,24 @@ def send_request(ids_list):
             cur = data.cursor()
             cur.execute("select last_id from requests where token=? and destination=?", (bots_list[bot]["token"], settings_conf[0]))
             last_added_id = cur.fetchone()[0]
-            print(last_added_id)
             if last_added_id is None:
                 cur.execute("insert into requests (token, destination, last_id) values (?, ?, ?)", (bots_list[bot]["token"], settings_conf[0], 0))
             data.commit()
             data.close()
             target_uname = get_user(_id)
+            print(f'{bots_list[bot]["name"]}: adding to friends {target_uname}')
             if target_uname and int(_id) > int(last_added_id):
                 req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot]["token"]}'
                 vk_req = requests.get(req).json()
-                print(f'{bots_list[bot]["name"]}: adding to friends {target_uname}')
                 if 'error' in vk_req:
                     if vk_req['error']['error_code'] == 14:
                         print('Captcha needed, request to anti-captcha.com...')
                         urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
-                        captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
+                        captcha_key = AntiGate(settings_conf[2], 'captcha.jpg')
                         vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
-                    else:
+                    elif vk_req['error']['error_code'] == 1:
                         print('Reached limit of requests')
+                        return
                 if 'response' in vk_req:
                     if vk_req['response'] == 1:
                         bots_list[bot]['last_id'] = _id
@@ -144,25 +144,21 @@ def send_request(ids_list):
                         data.commit()
                         data.close()
                         print('OK')
+                        time.sleep(10)
                     elif vk_req['response'] == 4:
                         print('Double request')
-                print(f'{vk_req}')
-        time.sleep(10)
+            else:
+                print(f'Already added on early session')
+        time.sleep(0.5)
+
 
 for i in range(len(bots_list)):
-    # try:
-    #     type_id = get_type(settings_conf[0])
-    #     if type_id[0] == 'user':
-    #         list_ids = get_friends(type_id[1])
-    #     elif type_id[0] == 'group':
-    #         list_ids = get_members(type_id[1])
-    #     send_request(tokens_list[i], get_target_ids(settings_conf[1], list_ids))
-    # except TypeError:
-    #     # print('Error while get target link type')
-    #     print('Error')
-    type_id = get_type(settings_conf[0])
-    if type_id[0] == 'user':
-        list_ids = get_friends(type_id[1])
-    elif type_id[0] == 'group':
-        list_ids = get_members(type_id[1])
-    send_request(get_target_ids(bots_list[i]['token'], list_ids))
+    try:
+        type_id = get_type(settings_conf[0])
+        if type_id[0] == 'user':
+            list_ids = get_friends(type_id[1])
+        elif type_id[0] == 'group':
+            list_ids = get_members(type_id[1])
+        send_request(get_target_ids(bots_list[i]['token'], list_ids))
+    except Exception as excp:
+        print(excp)
