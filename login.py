@@ -2,6 +2,8 @@ import requests
 
 try:
     users = open('settings.cfg', 'r+')
+    users.close()
+    users = open('settings.cfg', 'a')
     u_login = input('VK Login: ')
     u_pass = input('VK Password: ')
     try:
