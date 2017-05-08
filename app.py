@@ -15,10 +15,10 @@ def get_settings():
     try:
         file_cfg = open('settings.cfg', 'r+')
         settings_conf = [line.strip() for line in file_cfg]
-        for i in range(2, len(settings_conf)):
+        for i in range(3, len(settings_conf)):
             r = requests.get(f'{vk_api}/account.getProfileInfo?{vk_cfg}{settings_conf[i]}').json()
-            bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}"})
-            print(f"Bot {i}: {r['response']['first_name']} {r['response']['last_name']}")
+            bots_list.append({'token': settings_conf[i], 'name': f"{r['response']['first_name']} {r['response']['last_name']}", 'target': settings_conf[0], 'last_id': '0'})
+            print(f"Bot {i-2}: {r['response']['first_name']} {r['response']['last_name']}")
         print(f'Target link: {settings_conf[0]}')
     except FileNotFoundError:
         print('Settings file not found, please run install')
@@ -79,9 +79,8 @@ def get_used_ids(token):
     data = sqlite3.connect('data.db')
     c = data.cursor()
     t = (token,)
-    c.execute("select id from requests where token=?", t)
     used_ids = []
-    for row in c.execute("select id from requests where token='aaa'"):
+    for row in c.execute("select last_id from requests where token=?", t):
         used_ids.append(row[0])
     data.commit()
     data.close()
@@ -97,37 +96,69 @@ def get_target_ids(token, ids):
     return target_ids
 
 
-def send_request(bot_id, id_list):
-    for _id in id_list:
-        req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot_id]["token"]}'
-        vk_req = requests.get(req).json()
-        print(f'{bots_list[bot_id]["name"]}: send request to friends for id{_id}')
-        print(f'{vk_req}')
-        if 'error' in vk_req:
-            if vk_req['error']['error_code'] == 14:
-                print('Captcha needed, request to anti-captcha.com...')
-                urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
-                captcha_key = AntiGate('d92e4ba5cd6971511b017cc0bd70abaa', 'captcha.jpg')
-                vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
-                print(f'{vk_req}')
+def get_user(_id):
+    try:
+        vk_req = requests.get(f'{vk_api}/users.get?user_ids={_id}&fields=last_seen{vk_cfg}').json()
+        last_seen = int(vk_req['response'][0]['last_seen']['time'])
+        if 'deactivated' not in vk_req['response']:
+            if int(settings_conf[1]) == 0 or last_seen > time.time() - int(settings_conf[1]) * 86400:
+                return f"{vk_req['response'][0]['first_name']} {vk_req['response'][0]['last_name']}"
+        else:
+            print('User deleted of inactive > of limit')
+            return None
+    except:
+        print('Error while get user')
+
+
+def send_request(ids_list):
+    for _id in ids_list:
+        for bot in range(len(bots_list)):
+            data = sqlite3.connect('data.db')
+            cur = data.cursor()
+            cur.execute("select last_id from requests where token=? and destination=?", (bots_list[bot]["token"], settings_conf[0]))
+            last_added_id = cur.fetchone()[0]
+            if last_added_id is None:
+                cur.execute("insert into requests (token, destination, last_id) values (?, ?, ?)", (bots_list[bot]["token"], settings_conf[0], 0))
+            data.commit()
+            data.close()
+            target_uname = get_user(_id)
+            print(f'{bots_list[bot]["name"]}: adding to friends {target_uname}')
+            if target_uname and int(_id) > int(last_added_id):
+                req = f'{vk_api}/friends.add?user_id={_id}{vk_cfg}{bots_list[bot]["token"]}'
+                vk_req = requests.get(req).json()
+                if 'error' in vk_req:
+                    if vk_req['error']['error_code'] == 14:
+                        print('Captcha needed, request to anti-captcha.com...')
+                        urlretrieve(vk_req['error']['captcha_img'], 'captcha.jpg')
+                        captcha_key = AntiGate(settings_conf[2], 'captcha.jpg')
+                        vk_req = requests.get(f"{req}&captcha_sid={vk_req['error']['captcha_sid']}&captcha_key={captcha_key}").json()
+                    elif vk_req['error']['error_code'] == 1:
+                        print('Reached limit of requests')
+                        return
+                if 'response' in vk_req:
+                    if vk_req['response'] == 1:
+                        bots_list[bot]['last_id'] = _id
+                        data = sqlite3.connect('data.db')
+                        cur = data.cursor()
+                        cur.execute("update requests set last_id=? where token=? and destination=?", (_id, bots_list[bot]["token"], settings_conf[0]))
+                        data.commit()
+                        data.close()
+                        print('OK')
+                        time.sleep(10)
+                    elif vk_req['response'] == 4:
+                        print('Double request')
             else:
-                print('Reached limit of requests')
-        time.sleep(10)
+                print(f'Already added on early session')
+        time.sleep(0.5)
+
 
 for i in range(len(bots_list)):
-    # try:
-    #     type_id = get_type(settings_conf[0])
-    #     if type_id[0] == 'user':
-    #         list_ids = get_friends(type_id[1])
-    #     elif type_id[0] == 'group':
-    #         list_ids = get_members(type_id[1])
-    #     send_request(tokens_list[i], get_target_ids(settings_conf[1], list_ids))
-    # except TypeError:
-    #     # print('Error while get target link type')
-    #     print('Error')
-    type_id = get_type(settings_conf[0])
-    if type_id[0] == 'user':
-        list_ids = get_friends(type_id[1])
-    elif type_id[0] == 'group':
-        list_ids = get_members(type_id[1])
-    send_request(i, get_target_ids(bots_list[i]['token'], list_ids))
+    try:
+        type_id = get_type(settings_conf[0])
+        if type_id[0] == 'user':
+            list_ids = get_friends(type_id[1])
+        elif type_id[0] == 'group':
+            list_ids = get_members(type_id[1])
+        send_request(get_target_ids(bots_list[i]['token'], list_ids))
+    except Exception as excp:
+        print(excp)
